@@ -8,7 +8,7 @@ integer coreRequirementChecks()
         llOwnerSay( "Must contain 'live' notecard containing stream URL.");
         return 0;
     }
-    if (llSubStringIndex( llToLower(llGetObjectDesc())), "http" ) == -1)
+    if (llSubStringIndex( llToLower(llGetObjectDesc()), "http" ) == -1)
     {
         llOwnerSay( "Object description must be a valid stream URL.");
         return 0;
