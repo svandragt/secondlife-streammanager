@@ -1,17 +1,17 @@
-integer gChannel = 1457227181;
+integer gChannel = -1457227181;
 integer listen_handle;
 
 setParcelMusicURL(string data) 
 {
     llSetParcelMusicURL(data);
-    llOwnerSay("Stream changed to: " + data);
+    llWhisper(0,"Stream changed to: " + data);
 }
 
 integer dataRequirementChecks(string data) 
 {
     if (llSubStringIndex( llToLower(data), "http" ) == -1)
     {
-        llOwnerSay("Data must be valid stream URL");
+        llWhisper(0,"Data must be valid stream URL");
         return 0;    
     }
 

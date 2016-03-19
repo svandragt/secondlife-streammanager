@@ -1,5 +1,5 @@
 key notecardQueryId;
-integer gChannel = 1457227181;
+integer gChannel = -1457227181;
 
 integer coreRequirementChecks() 
 {
