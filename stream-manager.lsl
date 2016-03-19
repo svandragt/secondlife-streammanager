@@ -1,4 +1,5 @@
 key notecardQueryId;
+integer gChannel = 1457227181;
 
 integer coreRequirementChecks() 
 {
@@ -34,8 +35,7 @@ integer dataRequirementChecks(string data)
 
 setParcelMusicURL(string data) 
 {
-    llSetParcelMusicURL(data);
-    llOwnerSay("Stream changed to: " + data);
+    llRegionSay(gChannel,data);
 }
 
 
@@ -52,6 +52,7 @@ default
         {
             return;
         }
+
         llOwnerSay("Started OK");
     }
     
