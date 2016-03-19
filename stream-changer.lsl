@@ -24,8 +24,8 @@ default
 
     state_entry()
     {
-        listen_handle = llListen(gChannel, "", llGetOwner(), "");
-        llOwnerSay("Started OK");
+        listen_handle = llListen(gChannel, "", NULL_KEY, "");
+        llWhisper(0,"Started OK");
     }
 
     listen( integer channel, string name, key id, string data )
