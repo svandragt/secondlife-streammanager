@@ -1,4 +1,4 @@
-# README #
+# Simple Stream Manager for SecondLife #
 
 This is a simple Stream Changer for SecondLife. It is useful for hangouts and clubs where there is a radio stream and a live stream.
 
