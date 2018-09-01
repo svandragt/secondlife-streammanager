@@ -47,14 +47,10 @@ default
 
     changed(integer mask)
     {   
-    //Triggered when the object containing this script changes owner.
-        if(mask & CHANGED_OWNER)
+        if (mask & CHANGED_OWNER)
         {
             llResetScript();   
-            // This will ensure the script listens to the new owner, and doesn't continue listening to the creator.
         }
     }
 
 }
-
-// END //
