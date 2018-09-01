@@ -8,9 +8,10 @@ integer coreRequirementChecks()
         llOwnerSay( "Must contain 'live' notecard containing stream URL.");
         return 0;
     }
+
     if (llSubStringIndex( llToLower(llGetObjectDesc()), "http" ) == -1)
     {
-        llOwnerSay( "Object description must be a valid stream URL.");
+        llOwnerSay( "Object description must be set to a valid stream URL.");
         return 0;
     }
 
@@ -24,6 +25,7 @@ integer dataRequirementChecks(string data)
         llOwnerSay("Missing stream URL in the notecard.");
         return 0;                
     }
+
     if (llSubStringIndex( llToLower(data), "http" ) == -1)
     {
         llOwnerSay("Notecard contents must contain valid stream URL");
@@ -110,5 +112,3 @@ default
 
 
 }
-
-// END //
