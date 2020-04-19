@@ -3,11 +3,20 @@
 *
 * Not deeded.
 */
+key av;
 key notecard_id;
 integer relay_channel = -1457227181;
+integer user_channel = PUBLIC_CHANNEL;
+integer listen_user;
+
 
 allow_sit() {
     llSitTarget(<0.0, 0.0, 0.1>, ZERO_ROTATION);
+}
+
+remove_sit() {
+    //TODO unsits also sets fallback stream.
+    llUnSit(av);
 }
 
 integer is_url(string maybe_url) {
@@ -51,6 +60,22 @@ integer listeningFunction(string input) {
 relayParcelMusicURL(string command, string data)
 {
     llRegionSay(relay_channel,command + " " + data);
+    llListenRemove(listen_user);
+    remove_sit();
+}
+
+integer validate_listen_user(string data, integer channel)
+{
+    if (channel != user_channel) {
+        return 0;
+    }
+
+    if (! is_url(data) && llToUpper(data) != "LIVE") {
+        llWhisper(0,"NOTICE: Data must be valid stream URL or the word LIVE");
+        return 0;
+    }
+
+    return 1;
 }
 
 /**
@@ -81,11 +106,12 @@ default
     changed(integer change)
     {
         if (change & CHANGED_LINK) {
-            key av = llAvatarOnSitTarget();
+            av = llAvatarOnSitTarget();
 
             if (av) {
-                // if avatar is sitting on prim then change to live stream
-                notecard_id = llGetNotecardLine("live", 0);
+                // if avatar is sitting on prim then listen to their command
+                listen_user = llListen(user_channel, "", av, "");
+                llWhisper(0, "Please say a stream URL or the word LIVE for parcel live stream.");
                 return;
             }
 
@@ -120,5 +146,22 @@ default
 
             relayParcelMusicURL("CHANGE", line);
         }
+    }
+
+    listen( integer channel, string name, key id, string data )
+    {
+        data = llStringTrim(data, STRING_TRIM);
+        integer pass = validate_listen_user(data, channel);
+        if (pass == 0) {
+            return;
+        }
+
+        if (llToUpper(data) == "LIVE") {
+            notecard_id = llGetNotecardLine("live", 0);
+            return;
+        }
+
+        // User said URL
+        relayParcelMusicURL("CHANGE", data);
     }
 }

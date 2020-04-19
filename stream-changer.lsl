@@ -3,8 +3,8 @@
 *
 * Deeded to group.
 */
-integer manager_channel = -1457227181;
-integer listen_handle;
+integer relay_channel = -1457227181;
+integer listen_relay;
 
 setParcelMusicURL(string data)
 {
@@ -12,9 +12,9 @@ setParcelMusicURL(string data)
     llWhisper(0,"Stream changed to: " + data);
 }
 
-integer validate_listen(list data, integer channel)
+integer validate_listen_relay(list data, integer channel)
 {
-    if (channel != manager_channel) {
+    if (channel != relay_channel) {
         return 0;
     }
 
@@ -50,7 +50,7 @@ default
 {
     state_entry()
     {
-        listen_handle = llListen(manager_channel, "", NULL_KEY, "");
+        listen_relay = llListen(relay_channel, "", NULL_KEY, "");
 
         save_stream_to_object();
 
@@ -60,7 +60,7 @@ default
     listen( integer channel, string name, key id, string data )
     {
         list data = llParseString2List(data, [" "], []);
-        integer pass = validate_listen(data, channel);
+        integer pass = validate_listen_relay(data, channel);
         if (pass == 0) {
             return;
         }
