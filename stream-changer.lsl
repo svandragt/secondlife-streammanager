@@ -26,7 +26,7 @@ integer validate_listen(list data, integer channel)
         return 0;
     }
 
-    if (command == 'CHANGE' && ! is_url(maybe_url)) {
+    if (command == "CHANGE" && ! is_url(maybe_url)) {
         llWhisper(0,"ERROR: Data must be valid stream URL.");
         return 0;
     }
@@ -35,11 +35,14 @@ integer validate_listen(list data, integer channel)
 }
 
 integer is_url(string maybe_url) {
-    return (llSubStringIndex( llToLower(maybe_url), "http" ) != -1)
+    if (llSubStringIndex( llToLower(maybe_url), "http" ) != -1) {
+        return 1;
+    }
+    return 0;
 }
 
-string save_stream_to_object() {
-    llSetObjectDesc( llGetParcelMusicURL);
+save_stream_to_object() {
+    llSetObjectDesc( llGetParcelMusicURL());
 }
 
 
@@ -56,7 +59,7 @@ default
 
     listen( integer channel, string name, key id, string data )
     {
-        list data = llParseString2List(data, [" "]);
+        list data = llParseString2List(data, [" "], []);
         integer pass = validate_listen(data, channel);
         if (pass == 0) {
             return;

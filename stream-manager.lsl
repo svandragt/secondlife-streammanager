@@ -6,12 +6,15 @@
 key notecard_id;
 integer relay_channel = -1457227181;
 
-integer allow_sit() {
+allow_sit() {
     llSitTarget(<0.0, 0.0, 0.1>, ZERO_ROTATION);
 }
 
 integer is_url(string maybe_url) {
-    return (llSubStringIndex( llToLower(maybe_url), "http" ) != -1)
+    if (llSubStringIndex( llToLower(maybe_url), "http" ) != -1) {
+        return 1;
+    }
+    return 0;
 }
 
 /**
@@ -36,12 +39,13 @@ integer validate_notecard_data(string data)
 * Handle person changing the stream via chat.
 */
 integer listeningFunction(string input) {
-    input = llStringTrim(input, STRIM_TRIM);
-    if (llToUpper(input) == 'LIVE') &&  (llGetInventoryKey("live") == NULL_KEY {
+    input = llStringTrim(input, STRING_TRIM);
+    if (llToUpper(input) == "LIVE" &&  llGetInventoryKey("live") == NULL_KEY) {
         // TODO: also message sitter
         llOwnerSay( "Must contain 'live' notecard containing stream URL.");
         return 0;
     }
+    return 1;
 }
 
 relayParcelMusicURL(string command, string data)
@@ -61,8 +65,6 @@ default
     state_entry()
     {
         allow_sit();
-
-        update_fallback_stream();
 
         llOwnerSay("Ready.");
     }
@@ -88,7 +90,7 @@ default
             }
 
             // change to stream specified in object description
-            relayParcelMusicURL("FALLBACK");
+            relayParcelMusicURL("FALLBACK", "");
             return;
         }
 
@@ -96,7 +98,7 @@ default
             llResetScript();
         }
 
-        if (mask & CHANGED_OWNER) {
+        if (change & CHANGED_OWNER) {
             llResetScript();
         }
     }
