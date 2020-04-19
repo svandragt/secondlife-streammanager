@@ -12,6 +12,7 @@ integer listen_user;
 
 allow_sit() {
     llSitTarget(<0.0, 0.0, 0.1>, ZERO_ROTATION);
+    llSetClickAction(CLICK_ACTION_SIT);
 }
 
 remove_sit() {
@@ -50,7 +51,7 @@ integer validate_notecard_data(string data)
 integer listeningFunction(string input) {
     input = llStringTrim(input, STRING_TRIM);
     if (llToUpper(input) == "LIVE" &&  llGetInventoryKey("live") == NULL_KEY) {
-        // TODO: also message sitter
+        llWhisper(0,"Owner must add missing 'live' notecard.");
         llOwnerSay( "Must contain 'live' notecard containing stream URL.");
         return 0;
     }
@@ -61,7 +62,6 @@ relayParcelMusicURL(string command, string data)
 {
     llRegionSay(relay_channel,command + " " + data);
     llListenRemove(listen_user);
-    remove_sit();
 }
 
 integer validate_listen_user(string data, integer channel)
@@ -107,7 +107,7 @@ default
     {
         if (change & CHANGED_LINK) {
             av = llAvatarOnSitTarget();
-
+            llListenRemove(listen_user);
             if (av) {
                 // if avatar is sitting on prim then listen to their command
                 listen_user = llListen(user_channel, "", av, "");
