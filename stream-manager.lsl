@@ -1,19 +1,10 @@
+/**
+* MANAGER
+*
+* Not deeded.
+*/
 key notecard_id;
 integer relay_channel = -1457227181;
-
-/**
-* Object description contains fallback url.
-*/
-integer validate_object()
-{
-    object_description = llStringTrim(llGetObjectDesc(), STRING_TRIM));
-    if (! is_url(object_description) ) {
-        llOwnerSay( "Object description must be set to a valid stream URL.");
-        return 0;
-    }
-
-    return 1;
-}
 
 integer allow_sit() {
     llSitTarget(<0.0, 0.0, 0.1>, ZERO_ROTATION);
@@ -53,9 +44,9 @@ integer listeningFunction(string input) {
     }
 }
 
-relayParcelMusicURL(string data)
+relayParcelMusicURL(string command, string data)
 {
-    llRegionSay(relay_channel,data);
+    llRegionSay(relay_channel,command + " " + data);
 }
 
 /**
@@ -69,12 +60,9 @@ default
     */
     state_entry()
     {
-        integer pass = validate_object();
-        if (pass == 0) {
-            return;
-        }
-
         allow_sit();
+
+        update_fallback_stream();
 
         llOwnerSay("Ready.");
     }
@@ -90,11 +78,6 @@ default
     */
     changed(integer change)
     {
-        integer pass = validate_object();
-        if (pass == 0) {
-            return;
-        }
-
         if (change & CHANGED_LINK) {
             key av = llAvatarOnSitTarget();
 
@@ -105,7 +88,7 @@ default
             }
 
             // change to stream specified in object description
-            relayParcelMusicURL(llGetObjectDesc());
+            relayParcelMusicURL("FALLBACK");
             return;
         }
 
@@ -133,7 +116,7 @@ default
                 return;
             }
 
-            relayParcelMusicURL(line);
+            relayParcelMusicURL("CHANGE", line);
         }
     }
 }
