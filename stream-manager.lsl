@@ -1,17 +1,13 @@
-key notecardQueryId;
-integer gChannel = -1457227181;
+key notecard_id;
+integer relay_channel = -1457227181;
 
-integer coreRequirementChecks()
+/**
+* Object description contains fallback url.
+*/
+integer validate_object()
 {
-    // set sit target, otherwise this will not work
-    llSitTarget(<0.0, 0.0, 0.1>, ZERO_ROTATION);
-
-    if (llGetInventoryKey("live") == NULL_KEY {
-        llOwnerSay( "Must contain 'live' notecard containing stream URL.");
-        return 0;
-    }
-
-    if (llSubStringIndex( llToLower(llGetObjectDesc()), "http" ) == -1) {
+    object_description = llStringTrim(llGetObjectDesc(), STRING_TRIM));
+    if (! is_url(object_description) ) {
         llOwnerSay( "Object description must be set to a valid stream URL.");
         return 0;
     }
@@ -19,41 +15,68 @@ integer coreRequirementChecks()
     return 1;
 }
 
-integer dataRequirementChecks(string data)
+integer allow_sit() {
+    llSitTarget(<0.0, 0.0, 0.1>, ZERO_ROTATION);
+}
+
+integer is_url(string maybe_url) {
+    return (llSubStringIndex( llToLower(maybe_url), "http" ) != -1)
+}
+
+/**
+* Notecard line must have contents and can only contains URLs.
+*/
+integer validate_notecard_data(string data)
 {
     if (data == EOF) {
-        llOwnerSay("Missing stream URL in the notecard.");
+        llOwnerSay("ERROR: stream URL cannot be found in notecard.");
         return 0;
     }
 
-    if (llSubStringIndex( llToLower(data), "http" ) == -1) {
-        llOwnerSay("Notecard contents must contain valid stream URL");
+    if (! is_url(data)) {
+        llOwnerSay("ERROR: Notecard must contain valid stream URL");
         return 0;
     }
 
     return 1;
 }
 
-setParcelMusicURL(string data)
-{
-    llRegionSay(gChannel,data);
+/**
+* Handle person changing the stream via chat.
+*/
+integer listeningFunction(string input) {
+    input = llStringTrim(input, STRIM_TRIM);
+    if (llToUpper(input) == 'LIVE') &&  (llGetInventoryKey("live") == NULL_KEY {
+        // TODO: also message sitter
+        llOwnerSay( "Must contain 'live' notecard containing stream URL.");
+        return 0;
+    }
 }
 
-/*
-    Main
+relayParcelMusicURL(string data)
+{
+    llRegionSay(relay_channel,data);
+}
 
+/**
+* Main
 */
 default
 {
 
+    /**
+    * Bootstrap.
+    */
     state_entry()
     {
-        integer pass = coreRequirementChecks();
+        integer pass = validate_object();
         if (pass == 0) {
             return;
         }
 
-        llOwnerSay("Started OK");
+        allow_sit();
+
+        llOwnerSay("Ready.");
     }
 
     on_rez(integer start_param)
@@ -62,41 +85,55 @@ default
         llResetScript();
     }
 
+    /**
+    * Handle avatar and inventory changes.
+    */
     changed(integer change)
     {
-        integer pass = coreRequirementChecks();
+        integer pass = validate_object();
         if (pass == 0) {
             return;
         }
 
         if (change & CHANGED_LINK) {
             key av = llAvatarOnSitTarget();
+
             if (av) {
                 // if avatar is sitting on prim then change to live stream
-                notecardQueryId = llGetNotecardLine("live", 0);
-            }
-            else {
-                // change to stream specified in object description
-                setParcelMusicURL(llGetObjectDesc());
+                notecard_id = llGetNotecardLine("live", 0);
                 return;
             }
+
+            // change to stream specified in object description
+            relayParcelMusicURL(llGetObjectDesc());
+            return;
         }
-        else if (change & CHANGED_INVENTORY) {
+
+        if (change & CHANGED_INVENTORY) {
+            llResetScript();
+        }
+
+        if (mask & CHANGED_OWNER) {
             llResetScript();
         }
     }
 
-    dataserver(key query_id, string data)
+    /**
+    * Process notecard line read.
+    * Only read the first line, contains live stream.
+    */
+    dataserver(key query_id, string line)
     {
-        if (query_id == notecardQueryId) {
-            data = llStringTrim(data, STRING_TRIM);
+        if (query_id == notecard_id) {
+            line = llStringTrim(line, STRING_TRIM);
 
-            integer pass = dataRequirementChecks(data);
+            integer pass = validate_notecard_data(line);
             if (pass == 0) {
+                llWhisper(0, "Owner must fix invalid notecard contents. Please try again later.");
                 return;
             }
 
-            setParcelMusicURL(data);
+            relayParcelMusicURL(line);
         }
     }
 }
