@@ -1,114 +1,167 @@
-key notecardQueryId;
-integer gChannel = -1457227181;
+/**
+* MANAGER
+*
+* Not deeded.
+*/
+key av;
+key notecard_id;
+integer relay_channel = -1457227181;
+integer user_channel = PUBLIC_CHANNEL;
+integer listen_user;
 
-integer coreRequirementChecks() 
+
+allow_sit() {
+    llSitTarget(<0.0, 0.0, 0.1>, ZERO_ROTATION);
+    llSetClickAction(CLICK_ACTION_SIT);
+}
+
+remove_sit() {
+    //TODO unsits also sets fallback stream.
+    llUnSit(av);
+}
+
+integer is_url(string maybe_url) {
+    if (llSubStringIndex( llToLower(maybe_url), "http" ) != -1) {
+        return 1;
+    }
+    return 0;
+}
+
+/**
+* Notecard line must have contents and can only contains URLs.
+*/
+integer validate_notecard_data(string data)
 {
-    if (llGetInventoryKey("live") == NULL_KEY)
-    {
+    if (data == EOF) {
+        llOwnerSay("ERROR: stream URL cannot be found in notecard.");
+        return 0;
+    }
+
+    if (! is_url(data)) {
+        llOwnerSay("ERROR: Notecard must contain valid stream URL");
+        return 0;
+    }
+
+    return 1;
+}
+
+/**
+* Handle person changing the stream via chat.
+*/
+integer listeningFunction(string input) {
+    input = llStringTrim(input, STRING_TRIM);
+    if (llToUpper(input) == "LIVE" &&  llGetInventoryKey("live") == NULL_KEY) {
+        llWhisper(0,"Owner must add missing 'live' notecard.");
         llOwnerSay( "Must contain 'live' notecard containing stream URL.");
         return 0;
     }
+    return 1;
+}
 
-    if (llSubStringIndex( llToLower(llGetObjectDesc()), "http" ) == -1)
-    {
-        llOwnerSay( "Object description must be set to a valid stream URL.");
+relayParcelMusicURL(string command, string data)
+{
+    llRegionSay(relay_channel,command + " " + data);
+    llListenRemove(listen_user);
+}
+
+integer validate_listen_user(string data, integer channel)
+{
+    if (channel != user_channel) {
+        return 0;
+    }
+
+    if (! is_url(data) && llToUpper(data) != "LIVE") {
+        llWhisper(0,"NOTICE: Data must be valid stream URL or the word LIVE");
         return 0;
     }
 
     return 1;
 }
 
-integer dataRequirementChecks(string data) 
+/**
+* Main
+*/
+default
 {
-    if (data == EOF)
-    {
-        llOwnerSay("Missing stream URL in the notecard.");
-        return 0;                
-    }
 
-    if (llSubStringIndex( llToLower(data), "http" ) == -1)
-    {
-        llOwnerSay("Notecard contents must contain valid stream URL");
-        return 0;    
-    }
-
-    return 1;
-}
-
-setParcelMusicURL(string data) 
-{
-    llRegionSay(gChannel,data);
-}
-
-
-default 
-{ 
-
+    /**
+    * Bootstrap.
+    */
     state_entry()
     {
-        // set sit target, otherwise this will not work 
-        llSitTarget(<0.0, 0.0, 0.1>, ZERO_ROTATION);
+        allow_sit();
 
-        integer pass = coreRequirementChecks();
-        if (pass == 0) 
-        {
-            return;
-        }
-
-        llOwnerSay("Started OK");
+        llOwnerSay("Ready.");
     }
-    
-    on_rez(integer start_param) 
-    { 
-        llOwnerSay("Reset");
-        llResetScript(); 
-    } 
 
+    on_rez(integer start_param)
+    {
+        llOwnerSay("Reset");
+        llResetScript();
+    }
+
+    /**
+    * Handle avatar and inventory changes.
+    */
     changed(integer change)
     {
-        integer pass = coreRequirementChecks();
-        if (pass == 0) 
-        {
+        if (change & CHANGED_LINK) {
+            av = llAvatarOnSitTarget();
+            llListenRemove(listen_user);
+            if (av) {
+                // if avatar is sitting on prim then listen to their command
+                listen_user = llListen(user_channel, "", av, "");
+                llWhisper(0, "Please say a stream URL or the word LIVE for parcel live stream.");
+                return;
+            }
+
+            // change to stream specified in object description
+            relayParcelMusicURL("FALLBACK", "");
             return;
         }
 
-        if (change & CHANGED_LINK)
-        { 
-
-            key av = llAvatarOnSitTarget();
-            if (av) // evaluated as true if key is valid and not NULL_KEY
-            {
-                // if avatar is sitting on prim then change to live stream
-                notecardQueryId = llGetNotecardLine("live", 0);
-            }
-            else 
-            {
-                // change to stream specified in object description
-                setParcelMusicURL(llGetObjectDesc());
-                return;
-            }
+        if (change & CHANGED_INVENTORY) {
+            llResetScript();
         }
-        else if (change & CHANGED_INVENTORY) 
-        {
+
+        if (change & CHANGED_OWNER) {
             llResetScript();
         }
     }
 
-    dataserver(key query_id, string data)
+    /**
+    * Process notecard line read.
+    * Only read the first line, contains live stream.
+    */
+    dataserver(key query_id, string line)
     {
-        if (query_id == notecardQueryId)
-        {
-            data = llStringTrim(data, STRING_TRIM);
+        if (query_id == notecard_id) {
+            line = llStringTrim(line, STRING_TRIM);
 
-            integer pass = dataRequirementChecks(data);
-            if (pass == 0) 
-            {
+            integer pass = validate_notecard_data(line);
+            if (pass == 0) {
+                llWhisper(0, "Owner must fix invalid notecard contents. Please try again later.");
                 return;
             }
 
-            setParcelMusicURL(data);
+            relayParcelMusicURL("CHANGE", line);
         }
     }
 
+    listen( integer channel, string name, key id, string data )
+    {
+        data = llStringTrim(data, STRING_TRIM);
+        integer pass = validate_listen_user(data, channel);
+        if (pass == 0) {
+            return;
+        }
 
+        if (llToUpper(data) == "LIVE") {
+            notecard_id = llGetNotecardLine("live", 0);
+            return;
+        }
+
+        // User said URL
+        relayParcelMusicURL("CHANGE", data);
+    }
 }
